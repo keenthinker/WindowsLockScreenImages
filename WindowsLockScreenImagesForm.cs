@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Drawing.Imaging;
 
 namespace WindowsLockScreenImages;
 
@@ -27,6 +28,9 @@ public partial class WindowsLockScreenImagesForm : Form
         InitializeComponent();
 
         this.assets = getAssets();
+
+        ListBox listBox = new();
+
         if (!this.assets.Any())
         {
             this.Load += (s, e) => Application.Exit();
@@ -36,13 +40,42 @@ public partial class WindowsLockScreenImagesForm : Form
         // label to show file information (name, size)
         var statusStripLabel = new ToolStripStatusLabel("Click an image from the list to view");
         statusStrip.Items.Add(statusStripLabel);
-        // button to open the directory with explorer
-        var statusStripButton = new ToolStripStatusLabel("Click to open images folder")
+        // buttons to save the selected file and to open the directory with explorer
+        statusStrip.Items.Add(new ToolStripStatusLabel("") { Spring = true, TextAlign = ContentAlignment.MiddleRight });
+       var statusStripSaveButton = new ToolStripSplitButton("Click to save selected image")
         {
-            Spring = true,
-            TextAlign = ContentAlignment.MiddleRight
+            DropDownButtonWidth = 0
         };
-        statusStripButton.Click += (s, e) =>
+        statusStripSaveButton.Click += (s, e) =>
+        {
+            var selectedIndex = listBox.SelectedIndex;
+            if (selectedIndex >= 0)
+            {
+                var metaItem = listBox.Items[selectedIndex] as ListBoxMetaItem;
+                var fullFileName = metaItem.Info.FullName;
+
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "*.jpg|*.jpeg",
+                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                };
+                if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    Image.FromFile(fullFileName).Save(saveFileDialog.FileName, ImageFormat.Jpeg);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Click on an image on the list to select it and save it.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        };
+        statusStrip.Items.Add(statusStripSaveButton);
+        statusStrip.Items.Add(new ToolStripSeparator());
+        var statusStripOpenButton = new ToolStripSplitButton("Click to open images folder")
+        {
+            DropDownButtonWidth = 0
+        };
+        statusStripOpenButton.Click += (s, e) =>
         {
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
@@ -51,7 +84,7 @@ public partial class WindowsLockScreenImagesForm : Form
             };
             Process.Start(startInfo);
         };
-        statusStrip.Items.Add(statusStripButton);
+        statusStrip.Items.Add(statusStripOpenButton);
         // split panel
         var splitContainer = new SplitContainer
         {
@@ -65,7 +98,7 @@ public partial class WindowsLockScreenImagesForm : Form
             SizeMode = PictureBoxSizeMode.Zoom
         };
         // left = list of files
-        var listBox = new ListBox
+        listBox = new ListBox
         {
             Dock = DockStyle.Fill
         };
@@ -84,7 +117,8 @@ public partial class WindowsLockScreenImagesForm : Form
                 pictureBox.Image = Image.FromFile(fullFileName);
 
                 var item = (ToolStripStatusLabel)statusStrip.Items[0];
-                item.Text = $"{metaItem.Info.Name} ({metaItem.HumanReadableSize()})";
+                var filenameLength = metaItem.Info.Name.Length;
+                item.Text = $"{metaItem.Info.Name.Substring(0, 4)}...{metaItem.Info.Name.Substring(filenameLength - 4, 4)} ({metaItem.HumanReadableSize()})";
             }
         };
         //
