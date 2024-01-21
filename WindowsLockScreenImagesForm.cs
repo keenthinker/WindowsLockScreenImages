@@ -52,16 +52,23 @@ public partial class WindowsLockScreenImagesForm : Form
             if (selectedIndex >= 0)
             {
                 var metaItem = listBox.Items[selectedIndex] as ListBoxMetaItem;
-                var fullFileName = metaItem.Info.FullName;
+                if (metaItem is not null)
+                {
+                    var fullFileName = metaItem.Info?.FullName;
 
-                var saveFileDialog = new SaveFileDialog
-                {
-                    Filter = "*.jpg|*.jpeg",
-                    InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                };
-                if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    Image.FromFile(fullFileName).Save(saveFileDialog.FileName, ImageFormat.Jpeg);
+                    var saveFileDialog = new SaveFileDialog
+                    {
+                        FileName = $"{metaItem.Info?.Name}.jpg",
+                        Filter = "JPEG (*.jpg)|*.jpeg,*.jpg",
+                        InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                    };
+                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
+                    {
+                        if (File.Exists(fullFileName))
+                        {
+                            Image.FromFile(fullFileName).Save(saveFileDialog.FileName, ImageFormat.Jpeg);
+                        }
+                    }
                 }
             }
             else
@@ -112,13 +119,17 @@ public partial class WindowsLockScreenImagesForm : Form
             if (selectedIndex >= 0)
             {
                 var metaItem = listBox.Items[selectedIndex] as ListBoxMetaItem;
-                var fullFileName = metaItem.Info.FullName;
-
-                pictureBox.Image = Image.FromFile(fullFileName);
-
-                var item = (ToolStripStatusLabel)statusStrip.Items[0];
-                var filenameLength = metaItem.Info.Name.Length;
-                item.Text = $"{metaItem.Info.Name.Substring(0, 4)}...{metaItem.Info.Name.Substring(filenameLength - 4, 4)} ({metaItem.HumanReadableSize()})";
+                if (metaItem is not null)
+                {
+                    var fullFileName = metaItem.Info?.FullName;
+                    if (File.Exists(fullFileName))
+                    {
+                        pictureBox.Image = Image.FromFile(fullFileName);
+                    }
+                    var item = (ToolStripStatusLabel)statusStrip.Items[0];
+                    var filenameLength = (metaItem.Info is not null) ? metaItem.Info.Name.Length : 0;
+                    item.Text = $"{metaItem.Info?.Name.Substring(0, 4)}...{metaItem.Info?.Name.Substring(filenameLength - 4, 4)} ({metaItem.HumanReadableSize()})";
+                }
             }
         };
         //

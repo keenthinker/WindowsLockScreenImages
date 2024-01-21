@@ -12,7 +12,7 @@ public class ListBoxMetaItem
 
     public String HumanReadableSize()
     {
-        var size = this.Info.Length;
+        var size = this.Info?.Length;
 
         const int unit = 1024;
         var mu = new List<string> { "B", "KB", "MB", "GB", "PT" };
