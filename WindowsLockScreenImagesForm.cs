@@ -27,6 +27,8 @@ public partial class WindowsLockScreenImagesForm : Form
     {
         InitializeComponent();
 
+        this.Icon = new Icon(AppDomain.CurrentDomain.BaseDirectory +  @"\WindowsLockScreenImagesIcon.ico");
+
         this.assets = getAssets();
 
         ListBox listBox = new();
