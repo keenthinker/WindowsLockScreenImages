@@ -22,5 +22,12 @@ jobs:
       with:
         dotnet-version: 8.0.x
         
-    - name: Build application
-      run: dotnet build --configuration Release --output ./releases
+    - name: Build executable
+      run: dotnet build --configuration Release --output ./release
+      
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-directory
+        path: .\release\
+        overwrite: true
