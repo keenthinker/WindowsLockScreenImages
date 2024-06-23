@@ -30,6 +30,11 @@ The Windows Lock Screen Images Viewer is a simple application that allows you to
 
 For any questions, feedback, or issues, please visit the [GitHub repository](https://github.com/keenthinker/WindowsLockScreenImages) and open an issue.
 
+## Release
+[![Build and deploy WindowsLockScreenImages Windows WinForms Desktop application](https://github.com/keenthinker/WindowsLockScreenImages/actions/workflows/WindowsLockScreenImagesBuild.yml/badge.svg)](https://github.com/keenthinker/WindowsLockScreenImages/actions/workflows/WindowsLockScreenImagesBuild.yml)
+
+You can download the executable application from here: https://github.com/keenthinker/WindowsLockScreenImages/releases
+
 ## License
 
 This Windows Lock Screen Viewer is licensed under the [MIT License](LICENSE). Feel free to use and modify it according to your needs.
