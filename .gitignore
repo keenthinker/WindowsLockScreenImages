@@ -1,4 +1,5 @@
 /bin
 /obj
-/.vs/WindowsLockScreenImages
+/.vs
+/Properties
 /WindowsLockScreenImages.csproj.user

@@ -9,14 +9,17 @@ public partial class WindowsLockScreenImagesForm : Form
 
     private string assetsUserDirectory = string.Empty;
     private string assetsLockScreenDirectory = string.Empty;
+    private string assetsWallpaperIris = string.Empty;
 
     private FileInfo[] getAssets()
     {
         var userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var wallpaper_directory = Path.Combine(userDirectory, @"AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets");
         var lockscreen_directory = Path.Combine(userDirectory, @"AppData\Roaming\Microsoft\Windows\Themes");
+        var wallpaper_iris = Path.Combine(userDirectory, @"AppData\Local\Packages\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\LocalCache\Microsoft\IrisService");
         this.assetsUserDirectory = wallpaper_directory;
         this.assetsLockScreenDirectory = lockscreen_directory;
+        this.assetsWallpaperIris = wallpaper_iris;
         if (!Directory.Exists(wallpaper_directory))
         {
             MessageBox.Show($"Directory '{wallpaper_directory}' does not exist!", "Something went wrong", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -27,6 +30,11 @@ public partial class WindowsLockScreenImagesForm : Form
             MessageBox.Show($"Directory '{lockscreen_directory}' does not exist!", "Something went wrong", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return this.assets;
         }
+        if (!Directory.Exists(wallpaper_iris))
+        {
+            MessageBox.Show($"Directory '{wallpaper_iris}' does not exist!", "Something went wrong", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return this.assets;
+        }
         List<FileInfo> files = new List<FileInfo>();
         foreach (var file in new DirectoryInfo(wallpaper_directory).GetFiles())
         {
@@ -34,6 +42,11 @@ public partial class WindowsLockScreenImagesForm : Form
                 files.Add(file);
         }
         foreach (var file in new DirectoryInfo(lockscreen_directory).GetFiles())
+        {
+            if (file.Extension != ".ini") // discard *.ini files
+                files.Add(file);
+        }
+        foreach (var file in new DirectoryInfo(wallpaper_iris).GetFiles("*", SearchOption.AllDirectories))
         {
             if (file.Extension != ".ini") // discard *.ini files
                 files.Add(file);
@@ -81,10 +94,7 @@ public partial class WindowsLockScreenImagesForm : Form
         statusStrip.Items.Add(statusStripLabel);
         // buttons to save the selected file and to open the directory with explorer
         statusStrip.Items.Add(new ToolStripStatusLabel("") { Spring = true, TextAlign = ContentAlignment.MiddleRight });
-        var statusStripSaveButton = new ToolStripSplitButton("Click to save selected image")
-        {
-            DropDownButtonWidth = 0
-        };
+        var statusStripSaveButton = new ToolStripSplitButton("Click to save selected image");
         statusStripSaveButton.Click += (s, e) =>
         {
             var selectedIndex = listBox.SelectedIndex;
@@ -113,10 +123,7 @@ public partial class WindowsLockScreenImagesForm : Form
         };
         statusStrip.Items.Add(statusStripSaveButton);
         statusStrip.Items.Add(new ToolStripSeparator());
-        var statusStripOpenButton = new ToolStripSplitButton("Click to open images folder")
-        {
-            DropDownButtonWidth = 0
-        };
+        var statusStripOpenButton = new ToolStripSplitButton("Click to open images folder");
         // open explorer on the two directories
         statusStripOpenButton.Click += (s, e) =>
         {
@@ -131,8 +138,16 @@ public partial class WindowsLockScreenImagesForm : Form
                 Arguments = this.assetsLockScreenDirectory,
                 FileName = "explorer.exe"
             };
+
+            ProcessStartInfo startInfo3 = new ProcessStartInfo
+            {
+                Arguments = this.assetsWallpaperIris,
+                FileName = "explorer.exe"
+            };
+
             Process.Start(startInfo1);
             Process.Start(startInfo2);
+            Process.Start(startInfo3);
         };
         statusStrip.Items.Add(statusStripOpenButton);
         // split panel
