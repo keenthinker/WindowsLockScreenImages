@@ -9,51 +9,43 @@ public partial class WindowsLockScreenImagesForm : Form
 
     private string assetsUserDirectory = string.Empty;
     private string assetsLockScreenDirectory = string.Empty;
-    private string assetsWallpaperIris = string.Empty;
 
     private FileInfo[] getAssets()
     {
         var userDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var wallpaper_directory = Path.Combine(userDirectory, @"AppData\Local\Packages\Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy\LocalState\Assets");
         var lockscreen_directory = Path.Combine(userDirectory, @"AppData\Roaming\Microsoft\Windows\Themes");
-        var wallpaper_iris = Path.Combine(userDirectory, @"AppData\Local\Packages\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\LocalCache\Microsoft\IrisService");
         this.assetsUserDirectory = wallpaper_directory;
         this.assetsLockScreenDirectory = lockscreen_directory;
-        this.assetsWallpaperIris = wallpaper_iris;
-        if (!Directory.Exists(wallpaper_directory))
-        {
-            MessageBox.Show($"Directory '{wallpaper_directory}' does not exist!", "Something went wrong", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return this.assets;
-        }
-        if (!Directory.Exists(lockscreen_directory))
-        {
-            MessageBox.Show($"Directory '{lockscreen_directory}' does not exist!", "Something went wrong", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return this.assets;
-        }
-        if (!Directory.Exists(wallpaper_iris))
-        {
-            MessageBox.Show($"Directory '{wallpaper_iris}' does not exist!", "Something went wrong", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return this.assets;
-        }
         List<FileInfo> files = new List<FileInfo>();
-        foreach (var file in new DirectoryInfo(wallpaper_directory).GetFiles())
+        if (Directory.Exists(wallpaper_directory))
         {
-            if (file.Length >= 50 * 1024) // discard files < 50kb
-                files.Add(file);
+            foreach (var file in new DirectoryInfo(wallpaper_directory).GetFiles())
+            {
+                if (file.Length >= 50 * 1024)
+                    files.Add(file);
+            }
         }
-        foreach (var file in new DirectoryInfo(lockscreen_directory).GetFiles())
+        else
         {
-            if (file.Extension != ".ini") // discard *.ini files
-                files.Add(file);
+            MessageBox.Show($"Directory '{wallpaper_directory}' does not exist!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
-        foreach (var file in new DirectoryInfo(wallpaper_iris).GetFiles("*", SearchOption.AllDirectories))
+
+        if (Directory.Exists(lockscreen_directory))
         {
-            if (file.Extension != ".ini") // discard *.ini files
-                files.Add(file);
+            foreach (var file in new DirectoryInfo(lockscreen_directory).GetFiles())
+            {
+                if (file.Extension != ".ini")
+                    files.Add(file);
+            }
+        }
+        else
+        {
+            MessageBox.Show($"Directory '{lockscreen_directory}' does not exist!", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         return files.ToArray();
     }
-    private Bitmap CreateThumbnail(Image original, Size maxSize)
+    private Bitmap createThumbnail(Image original, Size maxSize)
     {
         double ratioX = (double)maxSize.Width / original.Width;
         double ratioY = (double)maxSize.Height / original.Height;
@@ -89,41 +81,22 @@ public partial class WindowsLockScreenImagesForm : Form
         }
         // status bar
         var statusStrip = new StatusStrip();
+        statusStrip.ShowItemToolTips = true;
         // label to show file information (name, size)
         var statusStripLabel = new ToolStripStatusLabel("Click an image from the list to view");
         statusStrip.Items.Add(statusStripLabel);
         // buttons to save the selected file and to open the directory with explorer
         statusStrip.Items.Add(new ToolStripStatusLabel("") { Spring = true, TextAlign = ContentAlignment.MiddleRight });
-        var statusStripSaveButton = new ToolStripSplitButton("Click to save selected image");
-        statusStripSaveButton.Click += (s, e) =>
+        var statusStripSaveButton = new ToolStripSplitButton("Click to save selected image")
         {
-            var selectedIndex = listBox.SelectedIndex;
-            if (selectedIndex >= 0)
-            {
-                var metaItem = listBox.Items[selectedIndex] as ListBoxMetaItem;
-                if (metaItem is not null)
-                {
-                    var fullFileName = metaItem.Info?.FullName;
-
-                    var saveFileDialog = new SaveFileDialog
-                    {
-                        FileName = $"{metaItem.Info?.Name}.jpg",
-                        Filter = "JPEG (*.jpg)|*.jpeg,*.jpg",
-                        InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                    };
-                    if (saveFileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        if (File.Exists(fullFileName))
-                        {
-                            Image.FromFile(fullFileName).Save(saveFileDialog.FileName, ImageFormat.Jpeg);
-                        }
-                    }
-                }
-            }
+            DropDownButtonWidth = 0
         };
         statusStrip.Items.Add(statusStripSaveButton);
         statusStrip.Items.Add(new ToolStripSeparator());
-        var statusStripOpenButton = new ToolStripSplitButton("Click to open images folder");
+        var statusStripOpenButton = new ToolStripSplitButton("Click to open images folder")
+        {
+            DropDownButtonWidth = 0
+        };
         // open explorer on the two directories
         statusStripOpenButton.Click += (s, e) =>
         {
@@ -138,16 +111,8 @@ public partial class WindowsLockScreenImagesForm : Form
                 Arguments = this.assetsLockScreenDirectory,
                 FileName = "explorer.exe"
             };
-
-            ProcessStartInfo startInfo3 = new ProcessStartInfo
-            {
-                Arguments = this.assetsWallpaperIris,
-                FileName = "explorer.exe"
-            };
-
             Process.Start(startInfo1);
             Process.Start(startInfo2);
-            Process.Start(startInfo3);
         };
         statusStrip.Items.Add(statusStripOpenButton);
         // split panel
@@ -165,8 +130,7 @@ public partial class WindowsLockScreenImagesForm : Form
         var pictureContainer = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(20),
-            BackColor = SystemColors.ControlDarkDark
+            Padding = new Padding(5),
         };
         pictureContainer.Controls.Add(pictureBox);
         // create thumbnail viewer
@@ -188,7 +152,7 @@ public partial class WindowsLockScreenImagesForm : Form
             try
             {
                 using var tempImage = Image.FromFile(fileInfo.FullName);
-                var thumbnail = CreateThumbnail(tempImage, new Size(100, 60));
+                var thumbnail = createThumbnail(tempImage, new Size(100, 60));
 
                 var picBox = new PictureBox
                 {
@@ -208,6 +172,7 @@ public partial class WindowsLockScreenImagesForm : Form
 
                         var filenameLength = fileInfo.Name.Length;
                         statusStripLabel.Text = $"{fileInfo.Name.Substring(0, 4)}...{fileInfo.Name.Substring(filenameLength - 4, 4)} ({new ListBoxMetaItem(fileInfo).HumanReadableSize()})";
+                        statusStripLabel.ToolTipText = fileInfo.FullName;
 
                         selectedThumbnail = (PictureBox)s!;
                     }
@@ -224,18 +189,31 @@ public partial class WindowsLockScreenImagesForm : Form
 
         statusStripSaveButton.Click += (s, e) =>
         {
-            if (selectedThumbnail != null && pictureMap.TryGetValue(selectedThumbnail, out var selectedFile))
+            FileInfo? selectedFile = null;
+
+            if (listBox.Visible && listBox.SelectedIndex >= 0)
+            {
+                var metaItem = listBox.Items[listBox.SelectedIndex] as ListBoxMetaItem;
+                selectedFile = metaItem?.Info;
+            }
+            else if (thumbnailPanel.Visible && selectedThumbnail != null && pictureMap.TryGetValue(selectedThumbnail, out var fileFromThumbnail))
+            {
+                selectedFile = fileFromThumbnail;
+            }
+
+            if (selectedFile != null && File.Exists(selectedFile.FullName))
             {
                 var saveFileDialog = new SaveFileDialog
                 {
                     FileName = $"{selectedFile.Name}.jpg",
-                    Filter = "JPEG (*.jpg)|*.jpeg,*.jpg",
+                    Filter = "JPEG (*.jpg)|*.jpeg;*.jpg",
                     InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
                 };
 
                 if (saveFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    Image.FromFile(selectedFile.FullName).Save(saveFileDialog.FileName, ImageFormat.Jpeg);
+                    using var img = Image.FromFile(selectedFile.FullName);
+                    img.Save(saveFileDialog.FileName, ImageFormat.Jpeg);
                 }
             }
             else
@@ -243,8 +221,56 @@ public partial class WindowsLockScreenImagesForm : Form
                 MessageBox.Show("Click on an image to select it and save it.", "Information", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         };
+
+        listBox.Dock = DockStyle.Fill;
+
+        foreach (var file in this.assets)
+        {
+            listBox.Items.Add(new ListBoxMetaItem(file));
+        }
+
+        listBox.Click += (s, e) =>
+        {
+            var selectedIndex = listBox.SelectedIndex;
+            if (selectedIndex >= 0)
+            {
+                var metaItem = listBox.Items[selectedIndex] as ListBoxMetaItem;
+                if (metaItem is not null)
+                {
+                    var fullFileName = metaItem.Info?.FullName;
+                    if (File.Exists(fullFileName))
+                    {
+                        pictureBox.Image = Image.FromFile(fullFileName);
+                    }
+                    var item = (ToolStripStatusLabel)statusStrip.Items[0];
+                    var filenameLength = (metaItem.Info is not null) ? metaItem.Info.Name.Length : 0;
+                    item.Text = $"{metaItem.Info?.Name.Substring(0, 4)}...{metaItem.Info?.Name.Substring(filenameLength - 4, 4)} ({metaItem.HumanReadableSize()})";
+                }
+            }
+        };
+
+        thumbnailPanel.Visible = false;
+        listBox.Visible = true;
+
+        var toggleViewButton = new ToolStripSplitButton("Click to show thumbnails")
+        {
+            DropDownButtonWidth = 0
+        };
+        // button to toggle between file list and thumbnails
+        toggleViewButton.Click += (s, e) =>
+        {
+            bool showingThumbnails = thumbnailPanel.Visible;
+
+            thumbnailPanel.Visible = !showingThumbnails;
+            listBox.Visible = showingThumbnails;
+
+            toggleViewButton.Text = showingThumbnails ? "Click to show file list" : "Click to show thumbnails";
+        };
+        statusStrip.Items.Add(new ToolStripSeparator());
+        statusStrip.Items.Add(toggleViewButton);
         //
         splitContainer.Panel1.Controls.Add(thumbnailPanel);
+        splitContainer.Panel1.Controls.Add(listBox);
         splitContainer.Panel2.Controls.Add(pictureContainer);
         //
         this.Controls.Add(splitContainer);
